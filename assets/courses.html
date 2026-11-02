@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>课程表</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { background:#ffffff; color:#000000; }
+  body {
+    font-family: -apple-system, "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+    width:100%; margin:0 auto; padding:46px 8px 8px 8px;
+    line-height:1.2;
+    -webkit-font-smoothing:antialiased;
+  }
+  button, input, select, textarea { font-family:inherit; font-size:18px; color:#000; }
+  .hidden { display:none !important; }
+
+  .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:0; }
+  .header h1 { font-size:20px; font-weight:700; letter-spacing:-0.5px; line-height:1; }
+  .head-right { display:flex; gap:5px; align-items:center; }
+  .week-badge { font-size:13px; font-weight:600; background:#000; color:#fff; padding:2px 7px; border-radius:7px; }
+  .icon-btn {
+    width:30px; height:30px; border:1.5px solid #000; background:#fff; border-radius:7px;
+    font-size:15px; font-weight:700; cursor:pointer;
+  }
+  .date-line { font-size:14px; color:#666; font-weight:500; margin:3px 0 4px 0; }
+  .date-line b { color:#000; font-weight:700; }
+
+  .nav { display:table; margin:0 auto 12px; border-collapse:separate; border-spacing:4px 0; }
+  .nav-btn {
+    display:table-cell; vertical-align:middle;
+    width:32px; height:32px; border:1.5px solid #000; background:#fff; color:#000;
+    font-size:16px; font-weight:600; border-radius:6px; cursor:pointer; line-height:28px; text-align:center;
+    padding:0; box-sizing:border-box; outline:none; -webkit-tap-highlight-color:transparent;
+  }
+  .nav-btn:active { background:#000; color:#fff; }
+  .nav-today {
+    display:table-cell; vertical-align:middle;
+    width:200px; height:32px; border:1.5px solid #000; background:#000; color:#fff; border-radius:6px;
+    text-align:center; padding:0;
+  }
+  .nav-today .d { font-size:14px; font-weight:700; line-height:30px; color:#fff; text-align:center; }
+
+  .list { display:flex; flex-direction:column; }
+  .divider { border-top:1.5px solid #000; margin:14px 0; }
+  .card { border:1.5px solid #000; border-radius:8px; padding:5px 8px; display:flex; gap:8px; background:#fff; align-items:center; margin-bottom:6px; }
+  .card.now { background:#000; color:#fff; }
+  .card.now .c-time, .card.now .c-sub, .card.now .c-place { color:#fff; }
+  .card.past { border-color:#888; }
+  .c-time { flex:0 0 44px; border-right:1.5px dashed #000; padding-right:6px; text-align:center; }
+  .card.now .c-time { border-color:#fff; }
+  .c-time .p { font-size:16px; color:#000; font-weight:700; line-height:1.1; }
+  .c-time .t { font-size:10px; color:#000; line-height:1.1; margin-top:1px; font-weight:600; }
+  .card.now .c-time .p { color:#fff; }
+  .card.now .c-time .t { color:#fff; font-weight:700; }
+  .c-body { flex:1; min-width:0; padding-left:10px; }
+  .c-name { font-size:15px; font-weight:700; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .c-sub { font-size:12px; color:#444; margin-top:1px; white-space:nowrap; line-height:1.2; }
+  .c-place { font-size:12px; color:#444; margin-top:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:1.2; }
+  .c-line { font-size:15px; font-weight:700; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .empty { border:1.5px dashed #999; border-radius:10px; padding:20px 16px; text-align:center; font-size:16px; color:#666; }
+
+  .weekmap { display:none; }
+  .weekmap .wm-title { font-size:12px; color:#666; margin-bottom:3px; font-weight:600; }
+  .wm-row { display:flex; justify-content:space-between; }
+  .wm-cell { flex:1; text-align:center; padding:1px 0; }
+  .wm-cell .wd { font-size:12px; color:#666; }
+  .wm-cell .dot { width:7px; height:7px; border-radius:50%; background:#ddd; margin:2px auto 0 auto; }
+  .wm-cell.has .dot { background:#000; }
+  .wm-cell.today { background:#000; border-radius:6px; }
+  .wm-cell.today .wd { color:#fff; font-weight:700; }
+  .wm-cell.today .dot { background:#fff; }
+
+  .edit-h { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+  .edit-h h2 { font-size:25px; font-weight:700; }
+  .big-btn {
+    border:1.5px solid #000; background:#fff; border-radius:12px; padding:10px 16px;
+    font-size:18px; font-weight:600; cursor:pointer;
+  }
+  .big-btn.solid { background:#000; color:#fff; }
+  .sec-title { font-size:16px; color:#666; font-weight:700; margin:18px 0 8px 0; }
+  .field { margin-bottom:10px; }
+  .field label { display:block; font-size:16px; color:#666; margin-bottom:4px; }
+  .field input, .field select {
+    width:100%; height:48px; border:1.5px solid #000; border-radius:10px; padding:0 12px;
+    font-size:18px; background:#fff;
+  }
+  .row2 { display:flex; gap:10px; }
+  .row2 .field { flex:1; }
+  .add-btn { width:100%; height:52px; border:none; background:#000; color:#fff; border-radius:12px; font-size:20px; font-weight:700; cursor:pointer; margin-top:6px; }
+  .course-item {
+    border:1.5px solid #000; border-radius:12px; padding:10px 12px; margin-bottom:8px;
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .course-item .ci-main { flex:1; min-width:0; }
+  .course-item .ci-name { font-size:18px; font-weight:700; }
+  .course-item .ci-meta { font-size:14px; color:#666; margin-top:2px; }
+  .del-btn { flex:0 0 auto; margin-left:10px; width:44px; height:44px; border:1.5px solid #000; background:#fff; border-radius:10px; font-size:20px; font-weight:700; cursor:pointer; }
+  .qr-box { text-align:center; border:1.5px solid #000; border-radius:16px; padding:14px; margin-top:10px; }
+  .qr-box img { width:200px; height:200px; border:1px solid #ddd; }
+  .qr-box .qr-tip { font-size:15px; color:#666; margin-top:8px; line-height:1.4; }
+  .code-area { width:100%; height:80px; border:1.5px solid #000; border-radius:10px; padding:8px; font-size:16px; margin-top:8px; }
+</style>
+<script src="qrcode.min.js"></script>
+</head>
+<body>
+
+<div id="viewBoard">
+  <div class="header">
+    <h1>课程表</h1>
+    <div class="head-right">
+      <div class="week-badge" id="weekBadge">第 - 周</div>
+      <button class="icon-btn" id="editBtn">&#9881;</button>
+    </div>
+  </div>
+
+  <div class="nav">
+    <button class="nav-btn" id="prevBtn">&lt;</button>
+    <div class="nav-today">
+      <div class="d" id="navDate"></div>
+    </div>
+    <button class="nav-btn" id="nextBtn">&gt;</button>
+  </div>
+
+  <div class="list" id="courseList"></div>
+
+  <div class="weekmap">
+    <div class="wm-title">本周概览</div>
+    <div class="wm-row" id="wmRow"></div>
+  </div>
+</div>
+
+<div id="viewEdit" class="hidden" style="position:fixed;top:46px;left:0;right:0;bottom:0;background:#fff;z-index:99;overflow-y:auto;">
+  <div style="font-size:18px;font-weight:700;padding:0 20px 2px;border-bottom:2px solid #000;">后台管理</div>
+  <div style="text-align:center;padding:0 20px;">
+    <div style="font-size:14px;color:#333;margin-bottom:8px;line-height:1.3;">
+      手机和电脑连同一个WiFi<br>用浏览器或扫码访问
+    </div>
+    <div id="qrBox" style="margin:0 auto;width:120px;height:120px;border:2px solid #000;background:#fff;text-align:center;cursor:pointer;">
+      <span id="qrPlaceholder" style="font-size:12px;color:#999;line-height:120px;">点击刷新</span>
+    <div id="qrCanvas" style="display:none;text-align:center;padding-top:14px;">
+    </div>
+    </div>
+    <div id="qrUrl" style="font-size:13px;font-weight:bold;margin:6px 0;font-family:monospace;">--</div>
+    <div id="qrStatus" style="font-size:12px;color:#333;">服务运行中，端口9092</div>
+    <button id="closeQr" style="width:100%;height:44px;background:#000;color:#fff;border:2px solid #000;border-radius:8px;font-size:16px;font-weight:700;cursor:pointer;margin-top:8px;">返回主页</button>
+  </div>
+</div>
+
+<script>
+/* ================= 默认课表（来自教学安排表） ================= */
+var DEFAULT_CONFIG = {
+  semesterStart: '2026-09-07',
+  periods: [
+    { no:1,  start:'08:20', end:'09:05' },
+    { no:2,  start:'09:10', end:'09:50' },
+    { no:3,  start:'10:15', end:'11:00' },
+    { no:4,  start:'11:05', end:'11:45' },
+    { no:5,  start:'13:50', end:'14:35' },
+    { no:6,  start:'14:40', end:'15:20' },
+    { no:7,  start:'15:40', end:'16:25' },
+    { no:8,  start:'16:30', end:'17:10' },
+    { no:9,  start:'17:45', end:'18:30' },
+    { no:10, start:'18:35', end:'19:15' },
+    { no:11, start:'19:30', end:'20:15' },
+    { no:12, start:'20:20', end:'21:00' }
+  ],
+  courses: [
+    {day:0,ps:1,pe:2,name:"高等数学",place:"教学楼A 301",teacher:"张教授",weeks:"1-16"},
+    {day:0,ps:3,pe:4,name:"大学英语",place:"教学楼B 205",teacher:"李老师",weeks:"1-16"},
+    {day:0,ps:5,pe:6,name:"体育",place:"操场",teacher:"王教练",weeks:"1-16"},
+    {day:1,ps:1,pe:2,name:"线性代数",place:"教学楼A 402",teacher:"赵教授",weeks:"1-16"},
+    {day:1,ps:3,pe:4,name:"程序设计",place:"实验楼 101",teacher:"陈老师",weeks:"1-16"},
+    {day:1,ps:7,pe:8,name:"思政课",place:"教学楼C 101",teacher:"刘老师",weeks:"1-16"},
+    {day:2,ps:1,pe:2,name:"大学物理",place:"教学楼A 501",teacher:"周教授",weeks:"1-16"},
+    {day:2,ps:3,pe:4,name:"概率论",place:"教学楼A 305",teacher:"吴老师",weeks:"1-16"},
+    {day:2,ps:5,pe:6,name:"体育课",place:"体育馆",teacher:"郑教练",weeks:"1-16"},
+    {day:3,ps:1,pe:2,name:"离散数学",place:"教学楼B 301",teacher:"孙教授",weeks:"1-16"},
+    {day:3,ps:3,pe:4,name:"数据结构",place:"实验楼 203",teacher:"钱老师",weeks:"1-16"},
+    {day:3,ps:7,pe:8,name:"形势与政策",place:"教学楼C 202",teacher:"马老师",weeks:"1-8"},
+    {day:4,ps:1,pe:2,name:"操作系统",place:"实验楼 305",teacher:"冯老师",weeks:"1-16"},
+    {day:4,ps:3,pe:4,name:"计算机网络",place:"实验楼 306",teacher:"蒋老师",weeks:"1-16"},
+    {day:4,ps:5,pe:6,name:"英语听说",place:"语音室 101",teacher:"Emily",weeks:"1-16"}
+  ]
+};
+
+var SHORT_NAMES = {
+  "高等数学": "高数",
+  "大学英语": "英语",
+  "体育": "体育",
+  "线性代数": "线代",
+  "程序设计": "编程",
+  "思政课": "思政",
+  "大学物理": "大物",
+  "概率论": "概率",
+  "体育课": "体育",
+  "离散数学": "离散",
+  "数据结构": "数据结构",
+  "形势与政策": "形势政策",
+  "操作系统": "操作系统",
+  "计算机网络": "计网",
+  "英语听说": "听说"
+};
+
+function formatPlace(p) {
+  if (!p) return '';
+  if (p.indexOf('线上') >= 0) return '线上';
+  var m = p.match(/([\u4e00-\u9fa5]+?楼)\s*(\d+)/);
+  if (m) return m[1] + ' ' + m[2];
+  m = p.match(/(体育馆)\s*(\d+)/);
+  if (m) return m[1] + ' ' + m[2];
+  return p;
+}
+
+var STORE_KEY = 'eego_courses_v2';
+var CONFIG = loadConfig();
+
+var WEEK_CN = ['周一','周二','周三','周四','周五','周六','周日'];
+var WD_NAME = ['一','二','三','四','五','六','日'];
+var today = new Date();
+var viewDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+var autoNextDayDone = false;
+
+function loadConfig(){
+  try {
+    var raw = localStorage.getItem(STORE_KEY);
+    if (raw) { var obj = JSON.parse(raw); if (obj && obj.courses) return obj; }
+  } catch(e) {}
+  return JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+}
+function saveConfig(){
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(CONFIG)); } catch(e) {}
+}
+
+function encodeConfig(){
+  var json = JSON.stringify(CONFIG);
+  return btoa(unescape(encodeURIComponent(json)));
+}
+function decodeConfig(str){
+  var json = decodeURIComponent(escape(atob(str.replace(/\s/g,''))));
+  var obj = JSON.parse(json);
+  if (!obj || !obj.courses) throw new Error('bad');
+  return obj;
+}
+
+function getDow(d){ var day = d.getDay(); return (day===0)?6:day-1; }
+function getWeekNum(){
+  var start = new Date(CONFIG.semesterStart + 'T00:00:00');
+  var ms = viewDate - start;
+  if (ms < 0) return 0;
+  return Math.floor(ms/(7*24*3600*1000)) + 1;
+}
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function weekMatches(ws, wn){
+  if (!ws) return true;
+  var s = String(ws).replace(/\s+/g,'');
+  var parity = null;
+  if (s.indexOf('双')>=0){ parity='even'; s=s.replace('双',''); }
+  else if (s.indexOf('单')>=0){ parity='odd'; s=s.replace('单',''); }
+  var parts = s.split(',');
+  for (var i=0;i<parts.length;i++){
+    var p=parts[i]; if(!p) continue;
+    var rg=p.split('-');
+    var a=parseInt(rg[0],10), b=(rg.length>1)?parseInt(rg[1],10):a;
+    if (wn>=a && wn<=b){
+      if (parity==='even' && wn%2!==0) return false;
+      if (parity==='odd' && wn%2!==1) return false;
+      return true;
+    }
+  }
+  return false;
+}
+
+function todayCourses(){
+  var dow = getDow(viewDate), wn = getWeekNum(), arr = [];
+  for (var i=0;i<CONFIG.courses.length;i++){
+    var c = CONFIG.courses[i];
+    if (c.day === dow && weekMatches(c.weeks, wn)) arr.push(c);
+  }
+  arr.sort(function(a,b){ return a.ps - b.ps; });
+  return arr;
+}
+function courseState(c){
+  var p1 = CONFIG.periods[c.ps-1], p2 = CONFIG.periods[c.pe-1];
+  var now = new Date();
+  var nm = now.getHours()*60 + now.getMinutes();
+  var s = p1.start.split(':'), e = p2.end.split(':');
+  var sm = parseInt(s[0],10)*60 + parseInt(s[1],10);
+  var em = parseInt(e[0],10)*60 + parseInt(e[1],10);
+  if (nm < sm) return 'future';
+  if (nm <= em) return 'now';
+  return 'past';
+}
+
+function renderBoard(){
+  var dow = getDow(viewDate);
+  document.getElementById('weekBadge').innerHTML = '第 ' + getWeekNum() + ' 周 · 2026';
+  var m = viewDate.getMonth()+1, d = viewDate.getDate();
+  var isToday = viewDate.getDate()===today.getDate() && viewDate.getMonth()===today.getMonth();
+  document.getElementById('navDate').innerHTML = (isToday?'<span style="display:inline-block;background:#fff;color:#000;border-radius:50%;width:20px;height:20px;line-height:20px;text-align:center;font-size:12px;margin-right:6px;">今</span>':'')+m+'月'+d+'日 '+WEEK_CN[dow];
+
+  var list = document.getElementById('courseList');
+  var courses = todayCourses();
+  if (courses.length === 0){
+    list.innerHTML = '<div class="empty">今天本周没有课，好好休息</div>';
+  } else {
+    var html = '';
+    var allPast = true;
+    var autoNextDay = false;
+    for (var i=0;i<courses.length;i++){ if (courseState(courses[i])!=='past') { allPast=false; break; } }
+    if (isToday && allPast && courses.length>0 && !autoNextDayDone){
+      autoNextDay = true;
+      autoNextDayDone = true;
+      viewDate = new Date(viewDate); viewDate.setDate(viewDate.getDate()+1);
+      courses = todayCourses();
+      dow = getDow(viewDate);
+      document.getElementById('navDate').innerHTML = '<span style="display:inline-block;background:#fff;color:#000;border-radius:50%;width:20px;height:20px;line-height:20px;text-align:center;font-size:12px;margin-right:6px;">明</span>'+(viewDate.getMonth()+1)+'月'+viewDate.getDate()+'日 '+WEEK_CN[dow];
+    }
+    var markedNext = false;
+    for (var i=0;i<courses.length;i++){
+      var c = courses[i];
+      var p1 = CONFIG.periods[c.ps-1], p2 = CONFIG.periods[c.pe-1];
+      var st = courseState(c);
+      var cls = 'card';
+      if (autoNextDay) {
+        if (i===0) cls += ' now';
+      } else {
+        if (st === 'now') { cls += ' now'; }
+        else if (st === 'future' && !markedNext) { cls += ' now'; markedNext = true; }
+      }
+      var bigNo = Math.ceil(c.ps/2);
+      var bigNames = ['①','②','③','④','⑤','⑥'];
+      var startTimes = ['08:20','10:15','13:50','15:40','17:45','19:30'];
+      var pLabel = bigNames[bigNo-1] || String(c.ps);
+      var pTime = startTimes[bigNo-1] || '';
+      if (i>0 && c.ps > 4 && courses[i-1].ps <= 4) {
+        html += '<div class="divider"></div>';
+      }
+      html += '<div class="'+cls+'">'
+        + '<div class="c-time"><div class="p">'+pLabel+'</div><div class="t">'+pTime+'</div></div>'
+        + '<div class="c-body"><div class="c-line">'+esc(SHORT_NAMES[c.name]||c.name)+' · '+esc(formatPlace(c.place))+'</div></div></div>';
+    }
+    list.innerHTML = html;
+  }
+
+  var monday = new Date(viewDate); monday.setDate(viewDate.getDate() - dow);
+  var wn = getWeekNum();
+  var hasSet = {};
+  for (var k=0;k<CONFIG.courses.length;k++){
+    var cc = CONFIG.courses[k];
+    if (weekMatches(cc.weeks, wn)) hasSet[cc.day] = true;
+  }
+  var wmHtml = '';
+  for (var j=0;j<7;j++){
+    var cd = new Date(monday); cd.setDate(monday.getDate()+j);
+    var cls2 = 'wm-cell' + (hasSet[j]?' has':'') + (cd.toDateString()===today.toDateString()?' today':'');
+    wmHtml += '<div class="'+cls2+'"><div class="wd">'+WD_NAME[j]+'</div><div class="dot"></div></div>';
+  }
+  document.getElementById('wmRow').innerHTML = wmHtml;
+}
+
+function renderEditList(){
+  var el = document.getElementById('editList');
+  if (CONFIG.courses.length === 0){ el.innerHTML = '<div class="empty" style="padding:20px;">还没有课程</div>'; return; }
+  var arr = CONFIG.courses.slice();
+  arr.sort(function(a,b){ return a.day-b.day || a.ps-b.ps; });
+  var html = '';
+  for (var i=0;i<arr.length;i++){
+    var c = arr[i];
+    var pl = (c.ps===c.pe)?('第'+c.ps+'节'):('第'+c.ps+'-'+c.pe+'节');
+    html += '<div class="course-item"><div class="ci-main">'
+      + '<div class="ci-name">'+esc(c.name)+'</div>'
+      + '<div class="ci-meta">周'+WD_NAME[c.day]+' '+pl+' · '+esc(c.place)+'</div>'
+      + '</div><button class="del-btn" data-idx="'+i+'">×</button></div>';
+  }
+  el.innerHTML = html;
+}
+
+function showBoard(){
+  document.getElementById('viewEdit').classList.add('hidden');
+  document.getElementById('viewBoard').classList.remove('hidden');
+  if (window.Android) { Android.stopConfig(); Android.setView('board'); }
+  renderBoard();
+}
+function showEdit(){
+  document.getElementById('viewBoard').classList.add('hidden');
+  document.getElementById('viewEdit').classList.remove('hidden');
+  try { Android.saveCourses(JSON.stringify(DEFAULT_CONFIG.courses)); Android.setView('edit'); } catch(e) {}
+  var url = '';
+  var statusEl = document.getElementById('qrStatus');
+  try { url = Android.startConfig(); } catch(e) { url = ''; }
+  if (!url || url.indexOf('null') >= 0) {
+    document.getElementById('qrUrl').textContent = '';
+    statusEl.textContent = '启动失败，请确认已连WiFi';
+    return;
+  }
+  document.getElementById('qrUrl').textContent = url;
+  statusEl.textContent = '服务运行中，端口9092';
+  try {
+    var qr = qrcode(0, 'M');
+    qr.addData(url);
+    qr.make();
+    var c = document.getElementById('qrCanvas');
+    c.innerHTML = '<img src="' + qr.createDataURL(6, 0) + '" style="width:90px;height:90px;display:block;margin:0 auto;">';
+    c.style.display = 'block';
+    document.getElementById('qrPlaceholder').style.display = 'none';
+  } catch(e) {}
+}
+document.getElementById('closeQr').addEventListener('click', showBoard);
+document.getElementById('qrBox').addEventListener('click', showEdit);
+
+function prevDay(){ viewDate.setDate(viewDate.getDate()-1); renderBoard(); }
+function nextDay(){ viewDate.setDate(viewDate.getDate()+1); renderBoard(); }
+document.getElementById('prevBtn').addEventListener('click', prevDay);
+document.getElementById('nextBtn').addEventListener('click', nextDay);
+document.getElementById('editBtn').addEventListener('click', showEdit);
+
+function loadExternalData(){
+  try {
+    var json = null;
+    wv.loadUrl('javascript:CONFIG=courses;renderBoard();');
+  } catch(e) {}
+  showBoard();
+}
+
+showBoard();
+</script>
+</body>
+</html>
